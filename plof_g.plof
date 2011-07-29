@@ -1,0 +1,236 @@
+/*
+ * The Plof User Language basic definitions. This file gets you from the grammar defined in base.psl
+ * to a functional PUL grammar.
+ *
+ * Copyright (C) 2007-2011 Gregor Richards
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+grammar {
+    // Tokens
+    Token = /()[^A-Za-z0-9_]/ => $0
+
+    Grammar.Literal = /"/ /[A-Za-z_][A-Za-z0-9_]*/ /"/ Token WhiteN => (Seq
+        (GRem (SConcat Token. $1))
+        (GAdd
+            (SConcat Token. $1)
+            (Object (SConcat (IByte 47) (SConcat $1 (IByte 47))) Token)
+            (Object $$0)
+        )
+        (SConcat Token. $1)
+    )
+
+    Grammar.Literal = /"/ /[A-Za-z_][A-Za-z0-9_]*/ /"n/ Token WhiteN => (Seq
+        (GRem (SConcat TokenN. $1))
+        (GAdd
+            (SConcat TokenN. $1)
+            (Object (SConcat (IByte 47) (SConcat $1 (IByte 47))) Token)
+            (Object $$0)
+        )
+        (SConcat TokenN. $1)
+    )
+
+    Grammar.Literal = /"/ /[^A-Za-z_"][^"]*/ /"/ Token WhiteN => (Seq
+        (GRem (SConcat Token. $1))
+        (GAdd
+            (SConcat Token. $1)
+            (Object (SConcat (IByte 47) (SConcat $1 (IByte 47))))
+            (Object $$0)
+        )
+        (SConcat Token. $1)
+    )
+
+    Grammar.Literal = /"/ /[^A-Za-z_"][^"]*/ /"n/ Token WhiteN => (Seq
+        (GRem (SConcat TokenN. $1))
+        (GAdd
+            (SConcat TokenN. $1)
+            (Object (SConcat (IByte 47) (SConcat $1 (IByte 47))))
+            (Object $$0)
+        )
+        (SConcat TokenN. $1)
+    )
+}
+
+// This doesn't belong here
+grammar {
+    LanguageExpression = Comment => $0
+
+    Comment = /comment/ WhiteN /\{/ WhiteN Comment.Comment /\}/ WhiteN => $4
+
+    Comment.Comment = Comment.Chars => (Null)
+    Comment.Comment = Comment.Chars Comment.Nesting Comment.Chars => (Null)
+
+    Comment.Chars = /[^\{\}]*/ => $0
+    Comment.Nesting = /\{/ Comment.Comment /\}/ => $1
+
+
+    LanguageExpression = Show => $0;
+
+    Show = /show/ WhiteN /\{/ WhiteN Top /\}/ WhiteN => (Print $4)
+}
+
+grammar {
+    // End of statement can be either a semicolon or a newline (perhaps with line comments)
+    EOS = White /;/ WhiteN => (Null)
+    EOS = White /((\/\/[^\r\n]*)?\r*\n)/ WhiteN => (Null)
+
+    // the base PUL grammar
+    Top = WhiteN Plof.Statement => (Plof.Top $1)
+    LanguageExpression = Plof => $0
+
+    Plof = /plof/ WhiteN /\{/ WhiteN Plof.Statements /\}/ WhiteN => (Call (Plof.Top $4) (Arg))
+
+    Plof.Statements = Plof.Statement => $0
+    Plof.Statements = Plof.Statement Plof.Statements => (Seq $0 $1)
+
+    Plof.Statement = Plof.Statement.Next EOS => (Plof.Eval $0)
+    Plof.Statement => Plof.Assign
+
+    Plof.Semicolon = Plof.Semicolon.Next => $0
+    Plof.Semicolon = Plof.Semicolon EOS Plof.Semicolon.Next => (Seq
+        (Plof.Eval $0) $2
+    )
+    Plof.Semicolon => Plof.Assign
+
+    Plof.Assign = Plof.Assign.Next => $0
+    Plof.Assign = Plof.Assign.Next "="n Plof.Assign => (Plof.Assign $0 $2)
+    Plof.Assign => Plof.Bind
+
+    Plof.Bind = Plof.Bind.Next => $0
+    Plof.Bind = "let"n Plof.Bind.Next "="n Plof.Bind => (Plof.Assign $1 (Plof.Wrap $3))
+    Plof.Bind => Plof.Group
+
+    Plof.Group = Plof.Group.Next => $0
+    Plof.Group = "forceEval"n "\("n Plof.Identifier "\)" => (Plof.ForceEval (Plof.Var $2))
+    Plof.Group => Plof.Member
+
+    Plof.Member = Plof.Member.Next => $0
+    Plof.Member = Plof.Member "\."n Plof.Identifier => (Plof.Eval (Plof.Member $0 $2))
+    Plof.Member => Plof.Parens
+    
+    Plof.Parens = Plof.Parens.Next => $0
+    Plof.Parens = "\("n Plof.Semicolon "\)" => $1
+    Plof.Parens => Plof.Literal
+
+    // none of these literals are actually literals (hm), but they're at the same precedence
+    Plof.Literal = Plof.Literal.Next => $0
+    Plof.Literal = LanguageExpression => (Plof.Eval $0)
+    Plof.Literal = /\$[0-9][0-9]* / => $0 // for putting Plof into grammar
+    Plof.Literal => Plof.Var
+
+    Plof.Var = Plof.Var.Next => $0
+    Plof.Var = "var"n Plof.Identifier => (Plof.VarDecl $1)
+    Plof.Var => Plof.Identifier
+
+    Plof.Identifier = !Plof.Keyword /[A-Za-z_][A-Za-z0-9_]*/ Token White => (Plof.Var $1)
+
+    Plof.Keyword = "forceEval" => (Null)
+    Plof.Keyword = "let" => (Null)
+    Plof.Keyword = "parent" => (Null)
+    Plof.Keyword = "var" => (Null)
+}
+
+// Get Plof's global functions
+fythe { (ReserveGlobal Plof.Globals 2) }
+fythe {
+    // arrangement of partially-evaluated objects:
+    // {header, value, getter [, setter]}
+
+    // global bindings
+    (MemberSet (Global) (Plof.Globals) (New 2))
+    (MInit (Member (Global) (Plof.Globals)) 0)
+
+    // Plof.Eval
+    (MemberSet (Global) (IAdd (Plof.Globals) 1) (Function
+        (If (Equal (Member (Arg) 1) (Null))
+            // then
+            (MemberSet (Arg) 1 (Call (Member (Arg) 2) (Null)))
+            // else
+            (Member (Arg) 1)
+        )
+    ))
+}
+
+transforms {
+    Parsing => Plof.Optim
+    Plof.Optim => Plof.Compile
+    Plof.Compile => Plof.Finalize
+
+    Plof.Compile {
+        (Plof.Eval x) => (Call (Member (Global) (IAdd (Plof.Globals) 1)) x)
+
+        // variables
+        (Plof.Top x) => fythe {
+            (Object Function
+            // function for handling contexts
+            (Call (Function
+                // if this is an empty object (just primitive)
+                (If (IEqual (Length (Member (Arg) 0)) 0)
+                    (Member (Arg) 0)
+
+                // else if this is a Function
+                (If (SEqual (Member (Member (Arg) 0) 0) Function)
+                    // then (starting a new function context)
+                    (Seq
+                        (TempSet 0 (New 2))
+                        (MInit (Temp 0) 0)
+                        (MemberSet (Temp 0) 1 (Member (Arg) 1))
+                        (Object
+                            Function
+                            (Call (This) (Object (Member (Member (Arg) 0) 1) (Temp 0)))
+                        )
+                    )
+
+                // else if Plof.var
+                (If (SEqual (Member (Member (Arg) 0) 0) Plof.Var)
+                    // FIXME
+                    0
+
+                // else (all other things)
+                    (Seq
+                        (TempSet 0 (New (Length (Member (Arg) 0))))
+                        (MemberSet (Temp 0) 0 (Member (Member (Arg) 0) 0))
+
+                        // loop over the rest
+                        (TempSet 1 1)
+                        (While (ILt (Temp 1) (Length (Member (Arg) 0)))
+                            (Seq
+                                (MemberSet (Temp 0) (Temp 1) (Call (This) (Object
+                                    (Member (Member (Arg) 0) (Temp 1))
+                                    (Member (Arg) 1)
+                                )))
+                                (TempSet 1 (IAdd (Temp 1) 1))
+                            )
+                        )
+
+                        (Temp 0)
+                    )
+
+                )))
+            ) (Object
+                (Member (Member (Arg) 0) 1) // object being acted over
+                (Member (Global) (Plof.Globals)) // global scope
+            ))
+            )
+        }
+    }
+}
+
+x;
