@@ -101,12 +101,12 @@ grammar {
     Plof.Statements = Plof.Statement => $0
     Plof.Statements = Plof.Statements Plof.Statement => (Seq $0 $1)
 
-    Plof.Statement = Plof.Statement.Next EOS => (Plof.Eval $0)
+    Plof.Statement = Plof.Statement.Next EOS => $0
     Plof.Statement => Plof.Assign
 
     Plof.Semicolon = Plof.Semicolon.Next => $0
     Plof.Semicolon = Plof.Semicolon EOS Plof.Semicolon.Next => (Seq
-        (Plof.Eval $0) $2
+        $0 $2
     )
     Plof.Semicolon => Plof.Assign
 
@@ -119,11 +119,10 @@ grammar {
     Plof.Bind => Plof.Group
 
     Plof.Group = Plof.Group.Next => $0
-    Plof.Group = "forceEval"n "\("n Plof.Identifier "\)" => (Plof.ForceEval (Plof.Var $2))
     Plof.Group => Plof.Member
 
     Plof.Member = Plof.Member.Next => $0
-    Plof.Member = Plof.Member "\."n Plof.Identifier => (Plof.Eval (Plof.Member $0 $2))
+    Plof.Member = Plof.Member "\."n Plof.Identifier => (Plof.Member $0 $2)
     Plof.Member => Plof.Parens
     
     Plof.Parens = Plof.Parens.Next => $0
@@ -132,7 +131,7 @@ grammar {
 
     // none of these literals are actually literals (hm), but they're at the same precedence
     Plof.Literal = Plof.Literal.Next => $0
-    Plof.Literal = LanguageExpression => (Plof.Eval $0)
+    Plof.Literal = LanguageExpression => $0
     Plof.Literal = /\$[0-9][0-9]* / => $0 // for putting Plof into grammar
     Plof.Literal => Plof.Var
 
@@ -142,26 +141,23 @@ grammar {
 
     Plof.Identifier = !Plof.Keyword /[A-Za-z_][A-Za-z0-9_]*/ Token White => (Plof.Var $1)
 
-    Plof.Keyword = "forceEval" => (Null)
     Plof.Keyword = "let" => (Null)
     Plof.Keyword = "parent" => (Null)
     Plof.Keyword = "var" => (Null)
 }
 
 // Get Plof's global functions
-fythe { (ReserveGlobal Plof.Globals 10) }
+fythe { (ReserveGlobal Plof.Globals 8) }
 transforms {
     * {
         (Plof.Globals.GlobalScope)          => (Plof.Globals)
         (Plof.Globals.GlobalScopeNode)      => fythe { (IAdd (Plof.Globals) 1) }
-        (Plof.Globals.Eval)                 => fythe { (IAdd (Plof.Globals) 2) }
-        (Plof.Globals.ForceEval)            => fythe { (IAdd (Plof.Globals) 3) }
-        (Plof.Globals.Integer)              => fythe { (IAdd (Plof.Globals) 4) }
-        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 5) }
-        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 6) }
-        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 7) }
-        (Plof.Globals.GetVarRef)            => fythe { (IAdd (Plof.Globals) 8) }
-        (Plof.Globals.SetVarRef)            => fythe { (IAdd (Plof.Globals) 9) }
+        (Plof.Globals.Integer)              => fythe { (IAdd (Plof.Globals) 2) }
+        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 3) }
+        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 4) }
+        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 5) }
+        (Plof.Globals.GetVarRef)            => fythe { (IAdd (Plof.Globals) 6) }
+        (Plof.Globals.SetVarRef)            => fythe { (IAdd (Plof.Globals) 7) }
     }
 }
 
@@ -175,22 +171,6 @@ fythe {
     // global bindings
     (MemberSet (Global) (Plof.Globals.GlobalScope) (New 2))
     (MInit (Member (Global) (Plof.Globals.GlobalScope)) 0)
-
-    // Plof.Eval
-    (MemberSet (Global) (Plof.Globals.Eval) (Function
-        (If (Equal (Arg1) (Null))
-            // then
-            (MemberSet (Arg) 1 (Call (Arg2) (Null)))
-            // else
-            (Arg1)
-        )
-    ))
-
-    // Plof.ForceEval
-    (MemberSet (Global) (Plof.Globals.ForceEval) (Function
-        (MemberSet (Arg) 1 (Call (Arg2) (Null)))
-    ))
-
 
     // make the global scope legitimate
     (MemberSet (Global) (Plof.Globals.GlobalScopeNode) (New 2))
@@ -281,13 +261,7 @@ transforms {
     Plof.Optim => Plof.Compile
     Plof.Compile => Plof.Finalize
 
-    Plof.Optim {
-        (Plof.Eval (Plof.Eval x)) => (Plof.Eval x)
-    }
-
     Plof.Compile {
-        (Plof.Eval x) => (Call (Member (Global) (Plof.Globals.Eval)) x)
-        (Plof.ForceEval x) => (Call (Member (Global) (Plof.Globals.ForceEval)) x)
         (Plof.Integer x) => (Call (Member (Global) (Plof.Globals.Integer)) x)
         (Plof.Extend x y) => (Call (Member (Global) (Plof.Globals.Extend)) (Object x y))
         (Plof.CombineDecls x y) => (Call (Member (Global) (Plof.Globals.CombineDecls)) (Object x y))
