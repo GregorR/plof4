@@ -90,6 +90,7 @@ grammar {
     // End of statement can be either a semicolon or a newline (perhaps with line comments)
     EOS = White /;/ WhiteN => (Null)
     EOS = White /((\/\/[^\r\n]*)?\r*\n)/ WhiteN => (Null)
+    EOS = White /()\}/ => (Null)
 
     // the base PUL grammar
     Top = WhiteN Plof.Statement => (Plof.Top $1)
@@ -148,17 +149,27 @@ grammar {
 }
 
 // Get Plof's global functions
-fythe { (ReserveGlobal Plof.Globals 2) }
+fythe { (ReserveGlobal Plof.Globals 5) }
+transforms {
+    * {
+        (Plof.Globals.GlobalScope) => (Plof.Globals)
+        (Plof.Globals.GlobalScopeNode) => fythe { (IAdd (Plof.Globals) 1) }
+        (Plof.Globals.Eval) => fythe { (IAdd (Plof.Globals) 2) }
+        (Plof.Globals.GetVarRef) => fythe { (IAdd (Plof.Globals) 3) }
+        (Plof.Globals.SetVarRef) => fythe { (IAdd (Plof.Globals) 4) }
+    }
+}
+
 fythe {
     // arrangement of partially-evaluated objects:
     // {header, value, getter [, setter]}
 
     // global bindings
-    (MemberSet (Global) (Plof.Globals) (New 2))
-    (MInit (Member (Global) (Plof.Globals)) 0)
+    (MemberSet (Global) (Plof.Globals.GlobalScope) (New 2))
+    (MInit (Member (Global) (Plof.Globals.GlobalScope)) 0)
 
     // Plof.Eval
-    (MemberSet (Global) (IAdd (Plof.Globals) 1) (Function
+    (MemberSet (Global) (Plof.Globals.Eval) (Function
         (If (Equal (Member (Arg) 1) (Null))
             // then
             (MemberSet (Arg) 1 (Call (Member (Arg) 2) (Null)))
@@ -174,7 +185,7 @@ transforms {
     Plof.Compile => Plof.Finalize
 
     Plof.Compile {
-        (Plof.Eval x) => (Call (Member (Global) (IAdd (Plof.Globals) 1)) x)
+        (Plof.Eval x) => (Call (Member (Global) (Plof.Globals.Eval)) x)
 
         // variables
         (Plof.Top x) => fythe {
@@ -226,7 +237,7 @@ transforms {
                 )))
             ) (Object
                 (Member (Member (Arg) 0) 1) // object being acted over
-                (Member (Global) (Plof.Globals)) // global scope
+                (Member (Global) (Plof.Globals.GlobalScopeNode)) // global scope
             ))
             )
         }
