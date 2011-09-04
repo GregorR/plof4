@@ -1,6 +1,6 @@
 /*
- * The Plof User Language basic definitions. This file gets you from the
- * grammar defined in base.psl to a functional PUL grammar.
+ * The Plof base definitions. This file gets you from the grammar defined by
+ * fythecore to a functional Plof grammar.
  *
  * Copyright (C) 2007-2011 Gregor Richards
  * 
