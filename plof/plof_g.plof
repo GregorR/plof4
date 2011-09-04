@@ -149,17 +149,18 @@ grammar {
 }
 
 // Get Plof's global functions
-fythe { (ReserveGlobal Plof.Globals 8) }
+fythe { (ReserveGlobal Plof.Globals 9) }
 transforms {
     * {
-        (Plof.Globals.GlobalScope) => (Plof.Globals)
-        (Plof.Globals.GlobalScopeNode) => fythe { (IAdd (Plof.Globals) 1) }
-        (Plof.Globals.Eval) => fythe { (IAdd (Plof.Globals) 2) }
-        (Plof.Globals.Extend) => fythe { (IAdd (Plof.Globals) 3) }
-        (Plof.Globals.CombineDecls) => fythe { (IAdd (Plof.Globals) 4) }
-        (Plof.Globals.CombineObjs) => fythe { (IAdd (Plof.Globals) 5) }
-        (Plof.Globals.GetVarRef) => fythe { (IAdd (Plof.Globals) 6) }
-        (Plof.Globals.SetVarRef) => fythe { (IAdd (Plof.Globals) 7) }
+        (Plof.Globals.GlobalScope)          => (Plof.Globals)
+        (Plof.Globals.GlobalScopeNode)      => fythe { (IAdd (Plof.Globals) 1) }
+        (Plof.Globals.Eval)                 => fythe { (IAdd (Plof.Globals) 2) }
+        (Plof.Globals.Integer)              => fythe { (IAdd (Plof.Globals) 3) }
+        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 4) }
+        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 5) }
+        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 6) }
+        (Plof.Globals.GetVarRef)            => fythe { (IAdd (Plof.Globals) 7) }
+        (Plof.Globals.SetVarRef)            => fythe { (IAdd (Plof.Globals) 8) }
     }
 }
 
@@ -279,7 +280,10 @@ transforms {
 
     Plof.Compile {
         (Plof.Eval x) => (Call (Member (Global) (Plof.Globals.Eval)) x)
+        (Plof.Integer x) => (Call (Member (Global) (Plof.Globals.Integer)) x)
         (Plof.Extend x y) => (Call (Member (Global) (Plof.Globals.Extend)) (Object x y))
+        (Plof.CombineDecls x y) => (Call (Member (Global) (Plof.Globals.CombineDecls)) (Object x y))
+        (Plof.CombineObjs x y) => (Call (Member (Global) (Plof.Globals.CombineObjs)) (Object x y))
 
         // variables
         (Plof.Top x) => fythe {
@@ -354,17 +358,6 @@ transforms {
 grammar {
     Plof.Literal = /-?[0-9]+/ WhiteN => (Plof.Integer (SToIntegerT $0))
 }
-transforms {
-    Plof.Compile {
-        (Plof.Integer x) => fythe {
-            // Make this a call to opInteger
-            (Object Call
-                @object(MGet (Global) (Plof.Globals.GlobalScope) opInteger)
-                (MGet (Arg) 1 x)
-            )
-        }
-    }
-}
 
 // simple objects
 grammar {
@@ -385,4 +378,4 @@ grammar {
     Plof.ObjDef = Plof.Identifier "="n Plof.Bind.Next => (Object $0 $2)
 }
 
-show { x := [a=b]; }
+show { x = y:[a=b]; }
