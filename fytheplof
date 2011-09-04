@@ -1,4 +1,4 @@
 #!/usr/bin/env fythecore
 fythe {
-    (Fythe.Include plof_g.plof)
+    (Fythe.Include plof/plof_g.plof)
 }
