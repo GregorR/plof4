@@ -164,18 +164,54 @@ fythe {
     // arrangement of partially-evaluated objects:
     // {header, value, getter [, setter]}
 
+    // arrangement of scope nodes:
+    // {variable indexes[map], next [, count (if not global)]}
+
     // global bindings
     (MemberSet (Global) (Plof.Globals.GlobalScope) (New 2))
     (MInit (Member (Global) (Plof.Globals.GlobalScope)) 0)
 
     // Plof.Eval
     (MemberSet (Global) (Plof.Globals.Eval) (Function
-        (If (Equal (Member (Arg) 1) (Null))
+        (If (Equal (Arg1) (Null))
             // then
-            (MemberSet (Arg) 1 (Call (Member (Arg) 2) (Null)))
+            (MemberSet (Arg) 1 (Call (Arg2) (Null)))
             // else
-            (Member (Arg) 1)
+            (Arg1)
         )
+    ))
+
+    // Plof.GetVarRef (gets a variable reference from a scope node and name)
+    (MemberSet (Global) (Plof.Globals.GetVarRef) (Function
+        // If this is the global scope ...
+        (If (Equal (Arg0) (Member (Global) (Plof.Globals.GlobalScopeNode)))
+            // then this is a global reference, make a partially-eval object
+            (Object Object
+                (Object Null)
+                (Object MGet (Object Global) (Plof.Globals.GlobalScope) (Arg1))
+                (Object Null)
+                (Object Function
+                    (Object MSet (Object Global) (Plof.Globals.GlobalScope) (Arg1) (Object Arg))
+                )
+            )
+
+        // else if this is in the current scope ...
+        (If (MContains (Arg0) 0 (Arg1))
+            // then this is a local reference, use an offset
+            (Object Object
+                (Object Null)
+                (Object Member (Object Temp 0) (MGet (Arg0) 0 (Arg1)))
+                (Object Null)
+                (Object Function
+                    (Object MemberSet (Object Temp 0) (MGet (Arg0) 0 (Arg1)) (Object Arg))
+                )
+            )
+
+        // else,
+            // look in a parent scope (FIXME: won't wrap properly yet)
+            (Call (This) (Object (Member (Arg0) 1) (Arg1)))
+
+        ))
     ))
 }
 
@@ -184,8 +220,13 @@ transforms {
     Plof.Optim => Plof.Compile
     Plof.Compile => Plof.Finalize
 
+    Plof.Optim {
+        (Plof.Eval (Plof.Eval x)) => (Plof.Eval x)
+    }
+
     Plof.Compile {
         (Plof.Eval x) => (Call (Member (Global) (Plof.Globals.Eval)) x)
+        (Plof.GetVarRef n v) => (Call (Member (Global) (Plof.Globals.GetVarRef)) (Object n v))
 
         // variables
         (Plof.Top x) => fythe {
@@ -193,39 +234,38 @@ transforms {
             // function for handling contexts
             (Call (Function
                 // if this is an empty object (just primitive)
-                (If (IEqual (Length (Member (Arg) 0)) 0)
-                    (Member (Arg) 0)
+                (If (IEqual (Length (Arg0)) 0)
+                    (Arg0)
 
                 // else if this is a Function
-                (If (SEqual (Member (Member (Arg) 0) 0) Function)
+                (If (SEqual (Member (Arg0) 0) Function)
                     // then (starting a new function context)
                     (Seq
                         (TempSet 0 (New 2))
                         (MInit (Temp 0) 0)
-                        (MemberSet (Temp 0) 1 (Member (Arg) 1))
+                        (MemberSet (Temp 0) 1 (Arg1))
                         (Object
                             Function
-                            (Call (This) (Object (Member (Member (Arg) 0) 1) (Temp 0)))
+                            (Call (This) (Object (Member (Arg0) 1) (Temp 0)))
                         )
                     )
 
                 // else if Plof.var
-                (If (SEqual (Member (Member (Arg) 0) 0) Plof.Var)
-                    // FIXME
-                    0
+                (If (SEqual (Member (Arg0) 0) Plof.Var)
+                    (Call (Member (Global) (Plof.Globals.GetVarRef)) (Object (Arg1) (Member (Arg0) 1)))
 
                 // else (all other things)
                     (Seq
-                        (TempSet 0 (New (Length (Member (Arg) 0))))
-                        (MemberSet (Temp 0) 0 (Member (Member (Arg) 0) 0))
+                        (TempSet 0 (New (Length (Arg0))))
+                        (MemberSet (Temp 0) 0 (Member (Arg0) 0))
 
                         // loop over the rest
                         (TempSet 1 1)
-                        (While (ILt (Temp 1) (Length (Member (Arg) 0)))
+                        (While (ILt (Temp 1) (Length (Arg0)))
                             (Seq
                                 (MemberSet (Temp 0) (Temp 1) (Call (This) (Object
-                                    (Member (Member (Arg) 0) (Temp 1))
-                                    (Member (Arg) 1)
+                                    (Member (Arg0) (Temp 1))
+                                    (Arg1)
                                 )))
                                 (TempSet 1 (IAdd (Temp 1) 1))
                             )
@@ -236,7 +276,7 @@ transforms {
 
                 )))
             ) (Object
-                (Member (Member (Arg) 0) 1) // object being acted over
+                (Member (Arg0) 1) // object being acted over
                 (Member (Global) (Plof.Globals.GlobalScopeNode)) // global scope
             ))
             )
@@ -244,4 +284,4 @@ transforms {
     }
 }
 
-x;
+show { x; }
