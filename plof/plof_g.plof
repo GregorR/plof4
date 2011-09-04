@@ -99,7 +99,7 @@ grammar {
     Plof = /plof/ WhiteN /\{/ WhiteN Plof.Statements /\}/ WhiteN => (Call (Plof.Top $4) (Arg))
 
     Plof.Statements = Plof.Statement => $0
-    Plof.Statements = Plof.Statement Plof.Statements => (Seq $0 $1)
+    Plof.Statements = Plof.Statements Plof.Statement => (Seq $0 $1)
 
     Plof.Statement = Plof.Statement.Next EOS => (Plof.Eval $0)
     Plof.Statement => Plof.Assign
