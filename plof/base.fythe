@@ -49,34 +49,20 @@ grammar {
 
     Plof.Assign = Plof.Assign.Next => $0
     Plof.Assign = Plof.Assign.Next "="n Plof.Assign => (Plof.Assign $0 $2)
-    Plof.Assign => Plof.Bind
-
-    Plof.Bind = Plof.Bind.Next => $0
-    Plof.Bind = "let"n Plof.Bind.Next "="n Plof.Bind => (Plof.Assign $1 (Plof.Wrap $3))
-    Plof.Bind => Plof.Group
-
-    Plof.Group = Plof.Group.Next => $0
-    Plof.Group => Plof.Member
+    Plof.Assign => Plof.Member
 
     Plof.Member = Plof.Member.Next => $0
     Plof.Member = Plof.Member "\."n Plof.Identifier => (Plof.Member $0 $2)
-    Plof.Member => Plof.Parens
-    
-    Plof.Parens = Plof.Parens.Next => $0
-    Plof.Parens = "\("n Plof.Semicolon "\)" => $1
-    Plof.Parens => Plof.Literal
+    Plof.Member => Plof.Primary
+   
+    Plof.Primary = Plof.Primary.Next => $0
+    Plof.Primary = "var"n Plof.Identifier => (Plof.VarDecl $1)
+    Plof.Primary = Plof.Identifier => (Plof.Var $0)
+    Plof.Primary = "\("n Plof.Semicolon "\)" => $1
+    Plof.Primary = LanguageExpression => $0
+    Plof.Primary = /\$[0-9][0-9]*/ => $0 // for putting Plof into grammar
 
-    // none of these literals are actually literals (hm), but they're at the same precedence
-    Plof.Literal = Plof.Literal.Next => $0
-    Plof.Literal = LanguageExpression => $0
-    Plof.Literal = /\$[0-9][0-9]* / => $0 // for putting Plof into grammar
-    Plof.Literal => Plof.Var
-
-    Plof.Var = Plof.Var.Next => $0
-    Plof.Var = "var"n Plof.Identifier => (Plof.VarDecl $1)
-    Plof.Var => Plof.Identifier
-
-    Plof.Identifier = !Plof.Keyword /[A-Za-z_][A-Za-z0-9_]*/ Token White => (Plof.Var $1)
+    Plof.Identifier = !Plof.Keyword /[A-Za-z_][A-Za-z0-9_]*/ Token White => $1
 
     Plof.Keyword = "let" => (Null)
     Plof.Keyword = "parent" => (Null)
@@ -84,119 +70,121 @@ grammar {
 }
 
 // Get Plof's global functions
-fythe { (ReserveGlobal Plof.Globals 8) }
+fythe { (ReserveGlobal Plof.Globals 5) }
 transforms {
     * {
         (Plof.Globals.GlobalScope)          => (Plof.Globals)
-        (Plof.Globals.GlobalScopeNode)      => fythe { (IAdd (Plof.Globals) 1) }
-        (Plof.Globals.Integer)              => fythe { (IAdd (Plof.Globals) 2) }
-        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 3) }
-        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 4) }
-        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 5) }
-        (Plof.Globals.GetVarRef)            => fythe { (IAdd (Plof.Globals) 6) }
-        (Plof.Globals.SetVarRef)            => fythe { (IAdd (Plof.Globals) 7) }
+        (Plof.Globals.Integer)              => fythe { (IAdd (Plof.Globals) 1) }
+        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 2) }
+        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 3) }
+        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 4) }
     }
 }
 
-fythe {
-    // arrangement of partially-evaluated objects:
-    // {header, value, getter [, setter]}
+// some global convenience functions for compiling Plof
+fml {
+    // variable contexts
+    fun plofNewCtx(parent) {
+        ctx = newtbl();
+        ctx.parent = parent;
+        ctx.varct = 0;
+        ctx.vars = newtbl();
+        ctx;
+    }
 
-    // arrangement of scope nodes:
-    // {variable indexes[map], next [, count (if not global)]}
+    plofGlobalCtx = plofNewCtx(null);
 
-    // global bindings
-    (MemberSet (Global) (Plof.Globals.GlobalScope) (New 2))
-    (MInit (Member (Global) (Plof.Globals.GlobalScope)) 0)
+    fun mlist(o, i) {
+        fythe { (MList (MGet (Arg) 0 o) (MGet (Arg) 0 i)) };
+    }
+
+    // get a reference to the value of this variable
+    fun plofGetVar(ctx, nm, depth) {
+        if (ctx === plofGlobalCtx) {
+            // things are more screwy at the global context
+            obj("MGet", obj("Global"), obj("Plof.Globals.GlobalScope"), nm);
+
+        } else if (mcontains(ctx.vars, 0, nm)) {
+            ret = obj("Temp", 0);
+
+            // begin wending our way to the top
+            for (depth; depth > 0; depth = depth - 1) {
+                ret = obj("Member", ret, 0);
+            }
+
+            // OK, it's at this depth
+            ret = obj("Member", obj("Temp", 0), ctx.vars->(nm) + 1);
+
+            ret;
+
+        } else {
+            // try the parent context
+            plofGetVar(ctx.parent, nm, depth+1);
+
+        }
+    }
+
+    // put a variable in this context, returning the getter for that variable
+    fun plofSetVar(ctx, nm) {
+        if (ctx !== plofGlobalCtx) {
+            // actually might need to add it
+            if (!mcontains(ctx.vars, 0, nm)) {
+                // yup, add it
+                ctx.vars->(nm) = ctx.varct;
+                ctx.varct = ctx.varct + 1;
+            }
+        }
+
+        plofGetVar(ctx, nm, 0);
+    }
+
+    // resolve all variable references in this AST node
+    fun plofResolveVars(ctx, node) {
+        if (length(node) == 0) {
+            // just a primitive
+
+        } else if (node[0] eq "Plof.Function") {
+            // function definition, make a context for it
+            sctx = plofNewCtx(ctx);
+
+            // then recurse (FIXME: need to handle arguments, actually reserving space)
+            node[0] = "Function";
+            node[1] = plofResolveVars(sctx, node[1]);
+
+        } else if (node[0] eq "Plof.Var") {
+            // a variable reference
+            node = plofGetVar(ctx, node[1], 0);
+
+        } else if (node[0] eq "Plof.VarDecl") {
+            // a variable declaration
+            node = plofSetVar(ctx, node[1], lhs);
+
+        } else {
+            // all other cases
+            for (i = 1; i < length(node); i = i + 1) {
+                node[i] = plofResolveVars(ctx, node[i]);
+            }
+
+        }
+
+        node;
+    }
 
     // make the global scope legitimate
-    (MemberSet (Global) (Plof.Globals.GlobalScopeNode) (New 2))
-    (MInit (Member (Global) (Plof.Globals.GlobalScopeNode)) 0)
-    (MInit (Global) (Plof.Globals.GlobalScope))
-
-    // Plof.GetVarRef (gets a variable reference from a scope node and name)
-    (MemberSet (Global) (Plof.Globals.GetVarRef) (Function
-        // If this is the global scope, then SetVarRef is the same ...
-        (If (Equal (Arg0) (Member (Global) (Plof.Globals.GlobalScopeNode)))
-            (Call (Member (Global) (Plof.Globals.SetVarRef)) (Arg))
-
-        // else if this is in the current scope ...
-        (If (MContains (Arg0) 0 (Arg1))
-            // then this is a local reference, use an offset
-            (Object Object
-                (Object Null)
-                (Object Member (Object Temp 0) (MGet (Arg0) 0 (Arg1)))
-                (Object Null)
-                (Object Function
-                    (Object MemberSet (Object Temp 0) (MGet (Arg0) 0 (Arg1)) (Object Arg))
-                )
-            )
-
-        // else,
-            // look in a parent scope (FIXME: won't wrap properly yet)
-            (Call (This) (Object (Member (Arg0) 1) (Arg1)))
-
-        ))
-    ))
-
-    // Plof.SetVarRef (sets a variable reference in a scope node with given name)
-    (MemberSet (Global) (Plof.Globals.SetVarRef) (Function
-        // if this is the global scope ...
-        (If (Equal (Arg0) (Member (Global) (Plof.Globals.GlobalScopeNode)))
-            (Seq
-                // make sure it exists
-                (If (INot (MContains (Member (Global) (Plof.Globals.GlobalScopeNode)) 0 (Arg1)))
-                    // not contained, so put it there
-                    (Seq
-                        (MSet (Member (Global) (Plof.Globals.GlobalScopeNode)) 0 (Arg1) (Null))
-                        (MSet (Global) (Plof.Globals.GlobalScope) (Arg1)
-                            (MGet (Global) (Plof.Globals.GlobalScope) Null)
-                        )
-                    )
-                    (Null)
-                )
-
-                // then just get it
-                (Object Object
-                    (Object Null)
-                    (Object MGet (Object Global) (Plof.Globals.GlobalScope) (Arg1))
-                    (Object Null)
-                    (Object Function
-                        (Object MSet (Object Global) (Plof.Globals.GlobalScope) (Arg1) (Object Arg))
-                    )
-                )
-            )
-
-        // else this is a local scope
-            (Seq
-                // make sure it exists
-                (If (INot (MContains (Arg0) 0 (Arg1)))
-                    // not contained, so put it there
-                    (Seq
-                        (MSet (Arg0) 0 (Arg1) (Member (Arg0) 2))
-                        (MemberSet (Arg0) 2 (IAdd (Member (Arg0) 2) 1))
-                    )
-                    (Null)
-                )
-
-                // then just return it
-                (Object Object
-                    (Object Null)
-                    (Object Member (Object Temp 0) (MGet (Arg0) 0 (Arg1)))
-                    (Object Null)
-                    (Object Function
-                        (Object MemberSet (Object Temp 0) (MGet (Arg0) 0 (Arg1)) (Object Arg))
-                    )
-                )
-            )
-        )
-    ))
+    minit(fytheGlobal(), fythe{(Plof.Globals.GlobalScope)});
 }
 
 transforms {
     Parsing => Plof.Optim
-    Plof.Optim => Plof.Compile
+    Plof.Optim => Plof.Resolve
+    Plof.Resolve => Plof.Compile
     Plof.Compile => Plof.Finalize
+
+    Plof.Resolve {
+        (Plof.Top x) => fml {
+            plofResolveVars(plofGlobalCtx, env@1.x);
+        }
+    }
 
     Plof.Compile {
         (Plof.Integer x) => (Call (Member (Global) (Plof.Globals.Integer)) x)
@@ -204,83 +192,19 @@ transforms {
         (Plof.CombineDecls x y) => (Call (Member (Global) (Plof.Globals.CombineDecls)) (Object x y))
         (Plof.CombineObjs x y) => (Call (Member (Global) (Plof.Globals.CombineObjs)) (Object x y))
 
-        // variables
-        (Plof.Top x) => fythe {
-            (Object Function
-            // function for handling contexts
-            (Call (Function
-                // if this is an empty object (just primitive)
-                (If (IEqual (Length (Arg0)) 0)
-                    (Arg0)
-
-                // else if this is a Function
-                (If (SEqual (Member (Arg0) 0) Plof.Function)
-                    // then (starting a new function context)
-                    (Seq
-                        // make the context
-                        (TempSet 0 (New 3))
-                        (MInit (Temp 0) 0)
-                        (MemberSet (Temp 0) 1 (Arg1))
-                        (MemberSet (Temp 0) 2 0)
-
-                        // handle the body
-                        (TempSet 1 (Call (This) (Object (Member (Arg0) 1) (Temp 0))))
-
-                        // then wrap it up to actually reserve the space
-                        (Object Plof.Function
-                            (Object Seq
-                                (Object TempSet 0 (Object New (Member (Temp 0) 2)))
-                                (Temp 1)
-                            )
-                        )
-                    )
-
-                // else if Plof.VarDecl
-                (If (SEqual (Member (Arg0) 0) Plof.VarDecl)
-                    (Call (Member (Global) (Plof.Globals.SetVarRef)) (Object (Arg1) (Member (Arg0) 1)))
-
-                // else if Plof.var
-                (If (SEqual (Member (Arg0) 0) Plof.Var)
-                    (Call (Member (Global) (Plof.Globals.GetVarRef)) (Object (Arg1) (Member (Arg0) 1)))
-
-                // else (all other things)
-                    (Seq
-                        (TempSet 0 (New (Length (Arg0))))
-                        (MemberSet (Temp 0) 0 (Member (Arg0) 0))
-
-                        // loop over the rest
-                        (TempSet 1 1)
-                        (While (ILt (Temp 1) (Length (Arg0)))
-                            (Seq
-                                (MemberSet (Temp 0) (Temp 1) (Call (This) (Object
-                                    (Member (Arg0) (Temp 1))
-                                    (Arg1)
-                                )))
-                                (TempSet 1 (IAdd (Temp 1) 1))
-                            )
-                        )
-
-                        (Temp 0)
-                    )
-
-                ))))
-            ) (Object
-                (Member (Arg0) 1) // object being acted over
-                (Member (Global) (Plof.Globals.GlobalScopeNode)) // global scope
-            ))
-            )
-        }
+        (Plof.Assign (MGet o i n) v) => (MSet o i n v)
+        (Plof.Assign (Member o i) v) => (MemberSet o i v)
     }
 }
 
 // integers
 grammar {
-    Plof.Literal = /-?[0-9]+/ WhiteN => (Plof.Integer (SToIntegerT $0))
+    Plof.Primary = /-?[0-9]+/ Token WhiteN => (Plof.Integer (SToIntegerT $0))
 }
 
 // simple objects
 grammar {
-    Plof.Bind => Plof.Combine
+    Plof.Assign => Plof.Combine
 
     Plof.Assign = Plof.Assign.Next ":="n "\["n Plof.ObjDefs "\]" => (Plof.Extend $0 $3)
 
@@ -288,13 +212,13 @@ grammar {
     Plof.Combine = Plof.Combine ":"n "\["n Plof.ObjDefs "\]" => (Plof.CombineDecls $0 $3)
     Plof.Combien = Plof.Combine ":"n Plof.Combine.Next => (Plof.CombineObjs $0 $3)
 
-    Plof.ObjDefs => Plof.ObjDef
     Plof.ObjDefs = WhiteN => (Object)
     Plof.ObjDefs = Plof.ObjDefs.Next => $0
     Plof.ObjDefs = Plof.ObjDefs EOS => $0
     Plof.ObjDefs = Plof.ObjDefs EOS Plof.ObjDefs.Next => (Concat $0 $2)
+    Plof.ObjDefs => Plof.ObjDef
 
-    Plof.ObjDef = Plof.Identifier "="n Plof.Bind.Next => (Object $0 $2)
+    Plof.ObjDef = Plof.Identifier "="n Plof.Assign => (Object $0 $2)
 }
 
 show { x = y:[a=b]; }
