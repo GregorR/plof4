@@ -13,3 +13,5 @@ install:
 	    rm -f plof && \
 	    (ln -s fytheplof plof || cp fytheplof plof)
 	install -D -m 0644 plof/base.fythe $(INCLUDE_PATH)/plof/base.fythe
+	install -D -m 0644 plof/plof.fythe $(INCLUDE_PATH)/plof/base.fythe
+	install -D -m 0644 plof/ploftop.fythe $(INCLUDE_PATH)/plof/ploftop.fythe
