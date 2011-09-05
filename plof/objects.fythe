@@ -68,9 +68,4 @@ fml {
     }
 
     plofObject[0] = concat(plofPO, obj(plofObject));
-
-    // mangle ourselves a child of plofObject
-    foo = new(2);
-    minit(foo, 1);
-    foo[0] = concat(plofObject[0], obj(foo));
 }
