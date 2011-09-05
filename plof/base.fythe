@@ -32,7 +32,7 @@ grammar {
     // the base Plof grammar
     LanguageExpression = Plof => $0
 
-    Plof = /plof/ WhiteN /\{/ WhiteN Plof.Statements /\}/ WhiteN => (Call (Plof.Top $4) (Arg))
+    Plof = /plof/ WhiteN /\{/ WhiteN Plof.Statements /\}/ WhiteN => (Plof.Top $4)
 
     Plof.Statements = Plof.Statement => $0
     Plof.Statements = Plof.Statements Plof.Statement => (Seq $0 $1)
@@ -218,4 +218,25 @@ grammar {
     Plof.ObjDefs => Plof.ObjDef
 
     Plof.ObjDef = Plof.Identifier "="n Plof.Assign => (Object $0 $2)
+}
+
+// implementations of global functions
+fythe {
+    // .Integer will be filled in properly later
+    (MemberSet (Global) (Plof.Globals.Integer) (Function (Arg)))
+
+    // extend is the easiest of the object nonsense
+    (MemberSet (Global) (Plof.Globals.Extend) {fml{ fun() {
+        for (temp(1) = 0; temp(1) < length(arg[1]); temp(1) = temp(1) + 2) {
+            arg[0]@1->(arg[1][temp(1)]) = arg[1][temp(1)+1];
+        }
+    }; }})
+
+    // ... yeah, I'll get to those other ones later :P
+
+    // and the global object
+    (TempSet 0 (New 2))
+    (MInit (Temp 0) 1)
+    (MSet (Global) (Plof.Globals.GlobalScope) Object (Temp 0))
+    (MSet (Member (Global) (FML.Global)) 0 fytheObject (Temp 0))
 }
