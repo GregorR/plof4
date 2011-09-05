@@ -69,16 +69,15 @@ grammar {
 }
 
 // Get Plof's global functions
-fythe { (ReserveGlobal Plof.Globals 7) }
+fythe { (ReserveGlobal Plof.Globals 6) }
 transforms {
     * {
         (Plof.Globals.GlobalScope)          => (Plof.Globals)
         (Plof.Globals.Integer)              => fythe { (IAdd (Plof.Globals) 1) }
-        (Plof.Globals.Member)               => fythe { (IAdd (Plof.Globals) 2) }
-        (Plof.Globals.MemberSet)            => fythe { (IAdd (Plof.Globals) 3) }
-        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 4) }
-        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 5) }
-        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 6) }
+        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 2) }
+        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 3) }
+        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 4) }
+        (Plof.Globals.POHeader)             => fythe { (IAdd (Plof.Globals) 5) }
     }
 }
 
@@ -196,8 +195,8 @@ transforms {
 
     Plof.Compile {
         (Plof.Integer x) => (Call (Member (Global) (Plof.Globals.Integer)) x)
-        (Plof.Member x y) => (Call (Member (Global) (Plof.Globals.Member)) (Object x y))
-        (Plof.MemberSet x y z) => (Call (Member (Global) (Plof.Globals.MemberSet)) (Object x y z))
+        (Plof.Member x y) => (PO.Member x y)
+        (Plof.MemberSet x y z) => (PO.MemberSet x y z)
         (Plof.Extend x y) => (Call (Member (Global) (Plof.Globals.Extend)) (Object x y))
         (Plof.CombineDecls x y) => (Call (Member (Global) (Plof.Globals.CombineDecls)) (Object x y))
         (Plof.CombineObjs x y) => (Call (Member (Global) (Plof.Globals.CombineObjs)) (Object x y))
@@ -233,10 +232,6 @@ fythe {
     // .Integer will be filled in properly later
     (MemberSet (Global) (Plof.Globals.Integer) (Function (Arg)))
 
-    // .Member will as well!
-    (MemberSet (Global) (Plof.Globals.Member) (Function (MGet (Arg0) 1 (Arg1))))
-    (MemberSet (Global) (Plof.Globals.MemberSet) (Function (MSet (Arg0) 1 (Arg1) (Arg2))))
-
     // extend is the easiest of the object nonsense
     (MemberSet (Global) (Plof.Globals.Extend) {fml{ fun() {
         for (temp(1) = 0; temp(1) < length(arg[1]); temp(1) = temp(1) + 2) {
@@ -250,5 +245,5 @@ fythe {
     (TempSet 0 (New 2))
     (MInit (Temp 0) 1)
     (MSet (Global) (Plof.Globals.GlobalScope) Object (Temp 0))
-    (MSet (Member (Global) (FML.Global)) 0 fytheObject (Temp 0))
+    (MSet (Member (Global) (FML.Global)) 0 plofObject (Temp 0))
 }

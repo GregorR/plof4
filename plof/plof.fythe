@@ -1,3 +1,4 @@
 fythe {
     (Fythe.Include plof/base.fythe)
+    (Fythe.Include plof/objects.fythe)
 }

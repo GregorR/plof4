@@ -1,0 +1,76 @@
+/*
+ * Implementation of Plof's object model. Plof is Fythe-PO-compatible, so see
+ * FytheCore's po.fythe for more information.
+ *
+ * Copyright (C) 2007-2011 Gregor Richards
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+fml {
+    plofPO = obj(
+        // Member
+        fun() {
+            if (fythe { (MContains (Arg0) 1 (Arg1)) }) {
+                // direct, the easy case
+                arg[0]@1->(arg[1]);
+            } else {
+                // indirect, use a helper
+                global.plofMemberIndirect(arg[0], arg[1]);
+            }
+        },
+
+        // MemberSet
+        fun() {
+            arg[0]@1->(arg[1]) = arg[2];
+        },
+
+        // ToString (unimpl)
+        fun() {
+            "[Plof object]";
+        }
+    );
+
+    fun plofMemberIndirect(obj, nm) {
+        // go through looking for the value
+        cobj = null;
+        val = null;
+        for (i = length(obj[0]) - 1; i >= fythe { (PO.HeaderSize) }; i = i - 1) {
+            cobj = obj[0][i];
+            if (mcontains(cobj, 1, nm)) {
+                // found it!
+                val = cobj@1->(nm);
+                i = length(obj);
+            }
+        }
+
+        if (val !== null) {
+            // do we need to copy it? (FIXME: actually support this)
+        }
+
+        val;
+    }
+
+    plofObject[0] = concat(plofPO, obj(plofObject));
+
+    // mangle ourselves a child of plofObject
+    foo = new(2);
+    minit(foo, 1);
+    foo[0] = concat(plofObject[0], obj(foo));
+}
