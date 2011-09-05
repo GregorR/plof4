@@ -24,69 +24,6 @@
  */
 
 grammar {
-    // Tokens
-    Token = /()[^A-Za-z0-9_]/ => $0
-
-    Grammar.Literal = /"/ /[A-Za-z_][A-Za-z0-9_]*/ /"/ Token WhiteN => (Seq
-        (GRem (SConcat Token. $1))
-        (GAdd
-            (SConcat Token. $1)
-            (Object (SConcat (IByte 47) (SConcat $1 (IByte 47))) Token White)
-            (Object $$0)
-        )
-        (SConcat Token. $1)
-    )
-
-    Grammar.Literal = /"/ /[A-Za-z_][A-Za-z0-9_]*/ /"n/ Token WhiteN => (Seq
-        (GRem (SConcat TokenN. $1))
-        (GAdd
-            (SConcat TokenN. $1)
-            (Object (SConcat (IByte 47) (SConcat $1 (IByte 47))) Token WhiteN)
-            (Object $$0)
-        )
-        (SConcat TokenN. $1)
-    )
-
-    Grammar.Literal = /"/ /[^A-Za-z_"][^"]*/ /"/ Token WhiteN => (Seq
-        (GRem (SConcat Token. $1))
-        (GAdd
-            (SConcat Token. $1)
-            (Object (SConcat (IByte 47) (SConcat $1 (IByte 47))) White)
-            (Object $$0)
-        )
-        (SConcat Token. $1)
-    )
-
-    Grammar.Literal = /"/ /[^A-Za-z_"][^"]*/ /"n/ Token WhiteN => (Seq
-        (GRem (SConcat TokenN. $1))
-        (GAdd
-            (SConcat TokenN. $1)
-            (Object (SConcat (IByte 47) (SConcat $1 (IByte 47))) WhiteN)
-            (Object $$0)
-        )
-        (SConcat TokenN. $1)
-    )
-}
-
-// This doesn't belong here
-grammar {
-    LanguageExpression = Comment => $0
-
-    Comment = /comment/ WhiteN /\{/ WhiteN Comment.Comment /\}/ WhiteN => $4
-
-    Comment.Comment = Comment.Chars => (Null)
-    Comment.Comment = Comment.Chars Comment.Nesting Comment.Chars => (Null)
-
-    Comment.Chars = /[^\{\}]*/ => $0
-    Comment.Nesting = /\{/ Comment.Comment /\}/ => $1
-
-
-    LanguageExpression = Show => $0;
-
-    Show = /show/ WhiteN /\{/ WhiteN Top /\}/ WhiteN => (Print $4)
-}
-
-grammar {
     // End of statement can be either a semicolon or a newline (perhaps with line comments)
     EOS = White /;/ WhiteN => (Null)
     EOS = White /((\/\/[^\r\n]*)?\r*\n)/ WhiteN => (Null)
