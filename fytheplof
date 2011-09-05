@@ -1,4 +1,4 @@
-#!/usr/bin/env fytheminilang
+#!/usr/bin/env fythecore
 fythe {
     (Fythe.Include plof/base.fythe)
 }
