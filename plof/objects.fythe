@@ -25,6 +25,9 @@
 
 fml {
     plofPO = obj(
+        // parent
+        null,
+
         // Member
         fun() {
             if (fythe { (MContains (Arg0) 1 (Arg1)) }) {
@@ -51,17 +54,27 @@ fml {
         // go through looking for the value
         cobj = null;
         val = null;
+        found = 0;
         for (i = length(obj[0]) - 1; i >= fythe { (PO.HeaderSize) }; i = i - 1) {
             cobj = obj[0][i];
             if (mcontains(cobj, 1, nm)) {
                 // found it!
+                found = 1;
                 val = cobj@1->(nm);
                 i = length(obj);
             }
         }
 
-        if (val !== null) {
-            // do we need to copy it? (FIXME: actually support this)
+        if (found) {
+            // do we need to copy it?
+            if (val !== null) {
+                if (val[0][0] === cobj) {
+                    // yes, copy it
+                    val = plofChild(val);
+                    val[0][0] = obj;
+                }
+            }
+            obj@1->(nm) = val;
         }
 
         val;
