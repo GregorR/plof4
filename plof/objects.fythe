@@ -30,7 +30,7 @@ fml {
 
         // Member
         fun() {
-            if (fythe { (MContains (Arg0) 1 (Arg1)) }) {
+            if (mcontains(arg[0], 1, arg[1])) {
                 // direct, the easy case
                 arg[0]@1->(arg[1]);
             } else {
@@ -50,18 +50,25 @@ fml {
         }
     );
 
-    fun plofMemberIndirect(obj, nm) {
+    fun bplofChild() {
+        temp(1) = new(2);
+        minit(temp(1), 1);
+        temp(1)[0] = concat(arg[0][0], obj(temp(1)));
+        temp(1);
+    }
+
+    fun plofMemberIndirect(obje, nm) {
         // go through looking for the value
         cobj = null;
         val = null;
         found = 0;
-        for (i = length(obj[0]) - 1; i >= fythe { (PO.HeaderSize) }; i = i - 1) {
-            cobj = obj[0][i];
+        for (i = length(obje[0]) - 1; i >= fythe { (PO.HeaderSize) }; i = i - 1) {
+            cobj = obje[0][i];
             if (mcontains(cobj, 1, nm)) {
                 // found it!
                 found = 1;
                 val = cobj@1->(nm);
-                i = length(obj);
+                i = length(obje);
             }
         }
 
@@ -70,11 +77,11 @@ fml {
             if (val !== null) {
                 if (val[0][0] === cobj) {
                     // yes, copy it
-                    val = plofChild(val);
-                    val[0][0] = obj;
+                    val = bplofChild.(val);
+                    val[0][0] = obje;
                 }
             }
-            obj@1->(nm) = val;
+            obje@1->(nm) = val;
         }
 
         val;
