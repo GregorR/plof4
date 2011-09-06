@@ -50,6 +50,7 @@ fml {
         }
     );
 
+    // simple function for creating a child of an object
     fun bplofChild() {
         temp(1) = new(2);
         minit(temp(1), 1);
@@ -57,6 +58,7 @@ fml {
         temp(1);
     }
 
+    // the (slow) member function for indirect members
     fun plofMemberIndirect(obje, nm) {
         // go through looking for the value
         cobj = null;
@@ -86,6 +88,16 @@ fml {
 
         val;
     }
+
+    // combine with decls (make a subtype)
+    fun bplofCombineDecls() {
+        temp(2) = global.bplofChild.(arg[0]); // FIXME: shouldn't use lookup here
+        for (temp(1) = 0; temp(1) < length(arg[1]); temp(1) = temp(1) + 2) {
+            temp(2)@1->(arg[1][temp(1)]) = arg[1][temp(1)+1];
+        }
+        temp(2);
+    }
+    fytheGlobal()[fythe{(Plof.Globals.CombineDecls)}] = bplofCombineDecls;
 
     plofObject[0] = concat(plofPO, obj(plofObject));
 }

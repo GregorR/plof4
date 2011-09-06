@@ -205,7 +205,7 @@ transforms {
 
 // integers
 grammar {
-    Plof.Primary = /-?[0-9]+/ Token WhiteN => (Plof.Integer (SToIntegerT $0))
+    Plof.Primary = /-?[0-9]+/ Token White => (Plof.Integer (SToIntegerT $0))
 }
 
 // simple objects
@@ -228,18 +228,19 @@ grammar {
 }
 
 // implementations of global functions
-fythe {
-    // .Integer will be filled in properly later
-    (MemberSet (Global) (Plof.Globals.Integer) (Function (Arg)))
-
-    // extend is the easiest of the object nonsense
-    (MemberSet (Global) (Plof.Globals.Extend) {fml{ fun() {
+fml {
+    fun bplofExtend() {
         for (temp(1) = 0; temp(1) < length(arg[1]); temp(1) = temp(1) + 2) {
             arg[0]@1->(arg[1][temp(1)]) = arg[1][temp(1)+1];
         }
-    }; }})
+    }
 
-    // ... yeah, I'll get to those other ones later :P
+    fytheGlobal()[fythe{(Plof.Globals.Extend)}] = bplofExtend;
+}
+
+fythe {
+    // .Integer will be filled in properly later
+    (MemberSet (Global) (Plof.Globals.Integer) (Function (Arg)))
 
     // and the global object
     (TempSet 0 (New 2))
