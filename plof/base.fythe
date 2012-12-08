@@ -2,7 +2,7 @@
  * The Plof base definitions. This file gets you from the grammar defined by
  * fythecore to a functional Plof grammar.
  *
- * Copyright (c) 2007-2011 Gregor Richards
+ * Copyright (c) 2007-2012 Gregor Richards
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,7 +26,7 @@ grammar {
     // the base Plof grammar
     LanguageExpression = Plof => $0
 
-    Plof = /plof/ WhiteN /\{/ WhiteN Plof.Statements /\}/ WhiteN => (Plof.Top $4)
+    Plof = /plof/ WhiteN /\{/ WhiteN Plof.Statements /\}/ WhiteN => (Plof.MaybeTop $4)
 
     Plof.Statements = Plof.Statement => $0
     Plof.Statements = Plof.Statements Plof.Statement => (Seq $0 $1)
@@ -63,20 +63,43 @@ grammar {
 }
 
 // Get Plof's global functions
-fythe { (ReserveGlobal Plof.Globals 6) }
+fythe { (ReserveGlobal Plof.Globals 8) }
 transforms {
     * {
         (Plof.Globals.GlobalScope)          => (Plof.Globals)
-        (Plof.Globals.Integer)              => fythe { (IAdd (Plof.Globals) 1) }
-        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 2) }
-        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 3) }
-        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 4) }
-        (Plof.Globals.POHeader)             => fythe { (IAdd (Plof.Globals) 5) }
+        (Plof.Globals.Function)             => fythe { (IAdd (Plof.Globals) 1) }
+        (Plof.Globals.Integer)              => fythe { (IAdd (Plof.Globals) 2) }
+        (Plof.Globals.Extend)               => fythe { (IAdd (Plof.Globals) 3) }
+        (Plof.Globals.CombineDecls)         => fythe { (IAdd (Plof.Globals) 4) }
+        (Plof.Globals.CombineObjs)          => fythe { (IAdd (Plof.Globals) 5) }
+        (Plof.Globals.NewFunction)          => fythe { (IAdd (Plof.Globals) 6) }
+        (Plof.Globals.POHeader)             => fythe { (IAdd (Plof.Globals) 7) }
     }
 }
 
 // some global convenience functions for compiling Plof
 fml {
+    // remove any nested Plof.Top expressions
+    fun plofRemoveNestedTops(node) {
+        if (length(node) == 2) {
+            if (node[0] eq "Plof.Top") {
+                // found one!
+                node = plofRemoveNestedTops(node[1]);
+            } else {
+                node[1] = plofRemoveNestedTops(node[1]);
+            }
+
+        } else {
+            // all other cases
+            for (i = 1; i < length(node); i = i + 1) {
+                node[i] = plofRemoveNestedTops(node[i]);
+            }
+
+        }
+
+        node;
+    }
+
     // variable contexts
     fun plofNewCtx(parent) {
         ctx = newtbl();
@@ -107,7 +130,7 @@ fml {
             }
 
             // OK, it's at this depth
-            ret = obj("Member", obj("Temp", 0), ctx.vars->(nm) + 1);
+            ret = obj("Member", ret, ctx.vars->(nm) + 1);
 
             ret;
 
@@ -141,9 +164,23 @@ fml {
             // function definition, make a context for it
             sctx = plofNewCtx(ctx);
 
-            // then recurse (FIXME: need to handle arguments, actually reserving space)
-            node[0] = "Function";
-            node[1] = plofResolveVars(sctx, node[1]);
+            /* Functions store their context in Temp0, with Temp0[0] referring
+             * to the parent. Function objects store their parent context in
+             * field 2, after po and the map */
+            body = plofResolveVars(sctx, node[1]);
+            node = obj("Associate",
+                obj("Function",
+                    obj("Seq",
+                        obj("TempSet", 0, obj("New", sctx.varct + 1)),
+                        obj("MemberSet", obj("Temp", 0), 0, obj("Member", obj("This"), 2)),
+                        body
+                    )
+                ),
+                obj("Call",
+                    obj("Member", obj("Global"), obj("Plof.Globals.NewFunction")),
+                    obj("Temp", 0)
+                )
+            );
 
         } else if (node[0] eq "Plof.Var") {
             // a variable reference
@@ -164,16 +201,23 @@ fml {
         node;
     }
 
-    // make the global scope legitimate
-    minit(fytheGlobal(), fythe{(Plof.Globals.GlobalScope)});
+    // make the global scope legitimate 
+    minit(fythe{(Global)}, fythe{(Plof.Globals.GlobalScope)});
 }
 
 transforms {
     Parsing => Plof.Optim
-    Plof.Optim => Plof.Resolve
+    Plof.Optim => Plof.FindTop
+    Plof.FindTop => Plof.Resolve
     Plof.Resolve => Plof.LHS
     Plof.LHS => Plof.Compile
     Plof.Compile => Plof.Finalize
+
+    Plof.FindTop {
+        (Plof.MaybeTop x) => fml {
+            obj("Plof.Top", plofRemoveNestedTops(env@1.x));
+        }
+    }
 
     Plof.Resolve {
         (Plof.Top x) => fml {
@@ -229,14 +273,14 @@ fml {
         }
     }
 
-    fytheGlobal()[fythe{(Plof.Globals.Extend)}] = bplofExtend;
+    fythe{(Global)}[fythe{(Plof.Globals.Extend)}] = bplofExtend;
 }
 
 fythe {
     // .Integer will be filled in properly later
     (MemberSet (Global) (Plof.Globals.Integer) (Function (Arg)))
 
-    // and the global object
+    // and the Object object
     (TempSet 0 (New 2))
     (MInit (Temp 0) 1)
     (MSet (Global) (Plof.Globals.GlobalScope) Object (Temp 0))

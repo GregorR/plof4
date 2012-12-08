@@ -1,0 +1,23 @@
+var print = (x) { fythe { (Print (Associate {plof{x}} (Null))) } }
+
+// object prototypes
+var x = Object:[x=42]
+var y = x:[]
+var z = y:[]
+
+print(z.x) // 42
+x.x = 24
+print(y.x) // 24
+print(z.x) // 42
+
+// function expressions and applications
+var x = { 42 } 0
+print(x) // 42
+
+var x = (x) { 42 } 0
+print(x) // 42
+
+(x) { print(x) } 42 // 42
+
+var x = (x, y) { x } 42 24
+print(x) // 42

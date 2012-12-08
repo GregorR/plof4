@@ -91,7 +91,8 @@ fml {
         }
         temp(2);
     }
-    fytheGlobal()[fythe{(Plof.Globals.CombineDecls)}] = bplofCombineDecls;
+    fythe{(Global)}[fythe{(Plof.Globals.CombineDecls)}] = bplofCombineDecls;
 
+    // make Plof's Object a proper PO object
     plofObject[0] = concat(plofPO, obj(plofObject));
 }
