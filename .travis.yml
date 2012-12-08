@@ -1,0 +1,8 @@
+language: c # Not really...
+
+script: ./autotests/runtests
+
+notifications:
+    irc:
+        channels: "irc.freenode.net#plof"
+        template: "%{repository} (%{branch} - %{commit} : %{author}): %{message}"

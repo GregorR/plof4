@@ -1,0 +1,14 @@
+#!/bin/sh
+if [ ! -e "fythe/cfythe" ]
+then
+    # Check out fythe first
+    hg clone https://bitbucket.org/GregorR/fythe
+fi
+
+cd fythe/cfythe
+
+make -f build/Makefile.gcc clean
+runtest cfythe_build make -f build/Makefile.gcc \
+    ECFLAGS="-O0 -g -DGGGGC_OPTION_MIN_HEAP -DGGGGC_OPTION_NO_POSIX_MEMALIGN"
+
+cd ../..

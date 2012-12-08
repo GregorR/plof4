@@ -1,0 +1,18 @@
+#!/bin/sh
+
+cd "`dirname $0`"/..
+. autotests/testenv
+
+runtest() {
+    echo 'Running test '$1
+    shift
+    echo "$@"
+    "$@"
+    echo 'Result: '$?
+    echo
+}
+
+for i in "$@"
+do
+    . autotests/"$i"
+done

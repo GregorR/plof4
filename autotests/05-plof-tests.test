@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# test using cfythe
+./fythe/cfythe/cfythe ./fythe/fythecore/fythecore ./fytheplof autotests/test.plof > test.plof.out
+runtest plof_tests diff --strip-trailing-cr autotests/test.plof.correct test.plof.out
+rm -f test.plof.out

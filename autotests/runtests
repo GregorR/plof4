@@ -1,0 +1,86 @@
+#!/bin/sh
+
+cd "`dirname $0`"/..
+TOPDIR="$PWD"
+
+. autotests/testenv
+
+# Pass in the current revision to make the output be more informative
+if [ "$1" ]
+then
+    REVISION="$1"
+else
+    REVISION="current"
+fi
+
+# The directory to log to
+if [ "$2" ]
+then
+    LOG_DIR="$2"
+else
+    LOG_DIR="$PWD/autotests/logs"
+fi
+mkdir -p $LOG_DIR
+
+TESTS_RUN=0
+TESTS_PASSED=0
+TESTS_FAILED=0
+TESTS_FLIST=""
+runtest() {
+    CUR_TEST="$1"
+    printf '%s\n' 'Running test '$1 >&3
+    shift
+    TESTS_RUN=$((TESTS_RUN + 1))
+    (
+        printf '%s\n' "$@"
+        "$@"
+    ) < /dev/null > $LOG_DIR/LOG-"$CUR_TEST" 2>&1
+    if [ "$?" != "0" ]
+    then
+        printf 'Failed!\n' >&3
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        TESTS_FLIST="$TESTS_FLIST $CUR_TEST"
+    else
+        printf 'Passed.\n' >&3
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    fi
+}
+
+rm -f $LOG_DIR/LOG*
+
+exec 3>&1 > /dev/null 2> /dev/null
+
+# now run the tests
+pwd
+for i in autotests/*.test
+do
+    . $i
+    cd "$TOPDIR"
+done
+
+# and log
+(
+    printf '%s' 'Test results for revision '"$REVISION"': '$((TESTS_PASSED))'/'$((TESTS_RUN))' passed'
+    if [ "$TESTS_FAILED" != "0" ]
+    then
+        printf '%s' ' [ failed:'"$TESTS_FLIST"' ]'
+    fi
+    printf '\n'
+) | tee $LOG_DIR/LOG >&3
+
+if [ "$TESTS_FAILED" != "0" ]
+then
+    # Further log why each failed
+    printf '\n========\nFAILURES\n========\n'
+
+    for fail in $TESTS_FLIST
+    do
+        printf '%s:\n--------\n' "$fail"
+        cat $LOG_DIR/LOG-$fail
+        printf '\n'
+    done
+
+    printf '\n========\n'
+fi >&3
+
+exec test "$TESTS_FAILED" = "0"

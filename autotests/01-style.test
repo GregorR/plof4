@@ -1,0 +1,5 @@
+#!/bin/sh
+runtest tabs test "x`find . -name '*.fythe' -o -name '*.plof' | xargs grep -l '	'`" = "x"
+
+# Eventually we want to exclude bad semicolons. For now it's hard to detect
+#runtest semicolons test "x`find plofcore -name '*.plof' -a ! -name 'pul_g.plof' | xargs grep -l ';$'`" = "x"

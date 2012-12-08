@@ -1,0 +1,32 @@
+#!/bin/sh
+trybt() {
+    "$@"
+    RET="$?"
+    if [ -e core ]
+    then
+        gdb --batch -x "$AT_DIR"/bt.gdb "$1" core
+    fi
+    return $RET
+}
+
+trybtout() {
+    OUT_TO="$1"
+    shift
+    "$@" > $OUT_TO
+    RET="$?"
+    if [ -e core ]
+    then
+        gdb --batch -x "$AT_DIR"/bt.gdb "$1" core
+    fi
+    return $RET
+}
+
+export PATH="`pwd`/cplof/src:$PATH"
+
+# Our directory
+AT_DIR="$PWD/autotests"
+
+ulimit -c unlimited
+ulimit -t 60
+ulimit -v 1048576
+export GC_MAXIMUM_HEAP_SIZE=$(( 128 * 294912 ))
