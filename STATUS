@@ -1,0 +1,25 @@
+Implementation status relative to original Plof 3 sources:
+
+pul_g.plof              Done (?) (Ground-up reimplemented in base, objects, functions)
+pul.plof                ^
+object_g.plof           ^
+object.plof             ^
+include_g.plof          -
+exceptions.plof         -
+boolean.plof            -
+comparisons.plof        -
+conditionals.plof       -
+dynamicTypes.plof       -
+number.plof             -
+string.plof             -
+exception_strings.plof  -
+modules.plof            -
+collection.plof         -
+eval_g.plof             -
+introspection.plof      -
+serialization.plof      -
+io.plof                 -
+builtins.plof           -
+nfi.plof                -
+
+Key: ^ means same as above, - means unimplemented
