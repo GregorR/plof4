@@ -221,7 +221,12 @@ transforms {
 
     Plof.Resolve {
         (Plof.Top x) => fml {
-            plofResolveVars(plofGlobalCtx, env@1.x);
+            /* as a real top-level expression, we reserve Temp 0 for the
+             * (imaginary) context */
+            obj("Seq",
+                obj("TempSet", 0, obj("Null")),
+                plofResolveVars(plofGlobalCtx, env@1.x)
+            );
         }
     }
 
