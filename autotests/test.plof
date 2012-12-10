@@ -10,6 +10,9 @@ x.x = 24
 print(y.x) // 24
 print(z.x) // 42
 
+print(99) // 99
+
+
 // function expressions and applications
 var x = { 42 } 0
 print(x) // 42
@@ -21,3 +24,13 @@ print(x) // 42
 
 var x = (x, y) { x } 42 24
 print(x) // 42
+
+print(99) // 99
+
+
+// call by name
+var x = (x) { 0 }
+x (print 0) // should print nothing
+
+var x = (x) { x; x; }
+x (print 1) // should print only one 1

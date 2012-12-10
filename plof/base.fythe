@@ -106,6 +106,7 @@ fml {
         ctx.parent = parent;
         ctx.varct = 0;
         ctx.vars = newtbl();
+        ctx.params = newtbl();
         ctx;
     }
 
@@ -119,7 +120,7 @@ fml {
     fun plofGetVar(ctx, nm, depth) {
         if (ctx === plofGlobalCtx) {
             // things are more screwy at the global context
-            obj("MGet", obj("Global"), obj("Plof.Globals.GlobalScope"), nm);
+            ret = obj("MGet", obj("Global"), obj("Plof.Globals.GlobalScope"), nm);
 
         } else if (mcontains(ctx.vars, 0, nm)) {
             ret = obj("Temp", 0);
@@ -132,6 +133,14 @@ fml {
             // OK, it's at this depth
             ret = obj("Member", ret, ctx.vars->(nm) + 1);
 
+            // if it's a parameter, need to call
+            if (ctx.params->(nm)) {
+                ret = obj("Seq",
+                    obj("TempSet", 1, ret),
+                    obj("Call", obj("Member", obj("Temp", 1), 0), obj("Temp", 1))
+                );
+            }
+
             ret;
 
         } else {
@@ -142,12 +151,17 @@ fml {
     }
 
     // put a variable in this context, returning the getter for that variable
-    fun plofSetVar(ctx, nm) {
+    fun plofSetVar(ctx, nm, param) {
         if (ctx !== plofGlobalCtx) {
             // actually might need to add it
             if (!mcontains(ctx.vars, 0, nm)) {
                 // yup, add it
                 ctx.vars->(nm) = ctx.varct;
+                if (param) {
+                    ctx.params->(nm) = 1;
+                } else {
+                    ctx.params->(nm) = 0;
+                }
                 ctx.varct = ctx.varct + 1;
             }
         }
@@ -188,7 +202,12 @@ fml {
 
         } else if (node[0] eq "Plof.VarDecl") {
             // a variable declaration
-            node = plofSetVar(ctx, node[1], lhs);
+            node = plofSetVar(ctx, node[1], 0);
+
+        } else if (node[0] eq "Plof.ParamDecl") {
+            // a parameter declaration
+            plofSetVar(ctx, node[1], 1);
+            node = obj("Member", obj("Temp", 0), ctx.vars->(node[1]) + 1);
 
         } else {
             // all other cases
@@ -249,6 +268,10 @@ transforms {
 // integers
 grammar {
     Plof.Primary = /-?[0-9]+/ Token White => (Plof.Integer (SToIntegerT $0))
+
+    /* FIXME: this is unit, for function calls taking no arguments. It should
+     * not work this way */
+    Plof.Primary = "\("n "\)" => (Plof.Integer 0)
 }
 
 // simple objects

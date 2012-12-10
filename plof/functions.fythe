@@ -20,25 +20,17 @@ grammar {
     Plof.Assign => Plof.Apply
 
     Plof.Apply = Plof.Apply.Next => $0
-    Plof.Apply = Plof.Apply Plof.Apply.Next => (Call $0 $1)
+    Plof.Apply = Plof.Apply Plof.Apply.Next => (Call $0 (Plof.Function $1))
 
     Plof.Primary = "\{"n Plof.Statements "\}" => (Plof.Function $1)
-
-    /* this desugars into a currying functions */
-    Plof.Primary = "\("n Plof.Params "\)" "\{"n Plof.Statements "\}" =>
-        (Plof.MultiParamFunction $1 $4)
 
     /* note that this is ambiguous, as it could also be interpreted as
      * (Apply (ParenExp) (FuncLiteral))
      * The ordering prevents ambiguous expansion, as we always do innermost,
      * LIFO, greedily */
-    Plof.Primary = "\("n Plof.Identifier "\)" "\{"n Plof.Statements "\}" =>
-        (Plof.Function
-            (Seq
-                (Plof.Assign (Plof.VarDecl $1) (Arg))
-                $4
-            )
-        )
+    /* this desugars into a currying functions */
+    Plof.Primary = "\("n Plof.Params "\)" "\{"n Plof.Statements "\}" =>
+        (Plof.MultiParamFunction $1 $4)
 
     Plof.Params = Plof.Identifier => (Plof.Param $0)
     Plof.Params = Plof.Identifier ","n Plof.Params => (Plof.Params $0 $2)
@@ -50,15 +42,32 @@ transforms {
     Plof.CompileFunctions {
         (Plof.MultiParamFunction (Plof.Params first rest) b) =>
             (Plof.Function (Seq
-                (Plof.Assign (Plof.VarDecl first) (Arg))
+                (Plof.ParamObjDecl first)
                 (Plof.MultiParamFunction rest b)
             ))
 
         (Plof.MultiParamFunction (Plof.Param nm) b) =>
             (Plof.Function (Seq
-                (Plof.Assign (Plof.VarDecl nm) (Arg))
+                (Plof.ParamObjDecl nm)
                 b
             ))
+
+        (Plof.ParamObjDecl nm) =>
+            (Plof.Assign (Plof.ParamDecl nm)
+                (Object
+                    (Function (Seq
+                        (MemberSet (Arg) 2
+                            (Call (Member (Arg) 1) (Null))
+                        )
+                        (MemberSet (Arg) 0 (Function
+                            (Member (Arg) 2)
+                        ))
+                        (Member (Arg) 2)
+                    ))
+                    (Arg)
+                    (Null)
+                )
+            )
     }
 }
 
