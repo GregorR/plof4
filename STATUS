@@ -6,7 +6,7 @@ object_g.plof           ^
 object.plof             ^
 include_g.plof          -
 exceptions.plof         -
-boolean.plof            -
+boolean.plof            +
 comparisons.plof        -
 conditionals.plof       -
 dynamicTypes.plof       -
@@ -22,4 +22,7 @@ io.plof                 -
 builtins.plof           -
 nfi.plof                -
 
-Key: ^ means same as above, - means unimplemented
+Key:
+    ^: same status as above file
+    -: unimplemented
+    +: imported nearly directly from previous code
