@@ -7,7 +7,7 @@ object.plof             ^
 include_g.plof          -
 exceptions.plof         -
 boolean.plof            +
-comparisons.plof        -
+comparisons.plof        +
 conditionals.plof       -
 dynamicTypes.plof       -
 number.plof             -

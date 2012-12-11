@@ -5,27 +5,27 @@ var x = Object:[x=42]
 var y = x:[]
 var z = y:[]
 
-print(z.x) // 42
+print z.x // 42
 x.x = 24
-print(y.x) // 24
-print(z.x) // 42
+print y.x // 24
+print z.x // 42
 
-print(99) // 99
+print 99 // 99
 
 
 // function expressions and applications
 var x = { 42 } 0
-print(x) // 42
+print x // 42
 
 var x = (x) { 42 } 0
-print(x) // 42
+print x // 42
 
-(x) { print(x) } 42 // 42
+(x) { print x } 42 // 42
 
 var x = (x, y) { x } 42 24
-print(x) // 42
+print x // 42
 
-print(99) // 99
+print 99 // 99
 
 
 // call by name
@@ -35,7 +35,7 @@ x (print 0) // should print nothing
 var x = (x) { x; x; }
 x (print 1) // should print only one 1
 
-print(99) // 99
+print 99 // 99
 
 
 // booleans
@@ -48,4 +48,14 @@ False:ifTrue (print 2) // nothing
 (False || (print 8 || True)):ifFalse (print 9) // 8
 (False && (print 9 || True)):ifFalse (print 10) // 10
 
-print(99) // 99
+print 99 // 99
+
+
+// comparisons (first bit)
+var x = Object:[]
+var y = Object:[]
+(x == y):ifTrue (print 1) // nothing
+(x == x):ifTrue (print 2) // 2
+// FIXME: identical comparisons
+
+print 99 // 99

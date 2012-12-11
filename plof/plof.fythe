@@ -3,4 +3,5 @@ fythe {
     (Fythe.Include plof/objects.fythe)
     (Fythe.Include plof/functions.fythe)
     (Fythe.Include plof/boolean.fythe)
+    (Fythe.Include plof/comparisons.fythe)
 }

@@ -1,0 +1,94 @@
+/*
+ * Comparisons
+ *
+ * Copyright (c) 2008 Gregor Richards
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+grammar {
+    Plof.And => Plof.Equals
+
+    Plof.Equals = Plof.Equals "=="n Plof.Equals.Next => plof {
+        opEqualsOf $0 $2
+    }
+    Plof.Equals = Plof.Equals "!="n Plof.Equals.Next => plof {
+        !(opEqualsOf $0 $2)
+    }
+    Plof.Equals = Plof.Equals "==="n Plof.Equals.Next => plof {
+        opIdenticalOf $0 $2
+    }
+    Plof.Equals = Plof.Equals "!=="n Plof.Equals.Next => plof{
+        !(opIdenticalOf $0 $2)
+    }
+    Plof.Equals = Plof.Equals.Next => $0
+    Plof.Equals => Plof.Cmp
+
+    Plof.Cmp = Plof.Cmp "<"n Plof.Cmp.Next => plof {
+        $0:opLess $2
+    }
+    Plof.Cmp = Plof.Cmp "<="n Plof.Cmp.Next => plof {
+        $0:opLessEqual $2
+    }
+    Plof.Cmp = Plof.Cmp ">"n Plof.Cmp.Next => plof {
+        $0:opGreater $2
+    }
+    Plof.Cmp = Plof.Cmp ">="n Plof.Cmp.Next => plof {
+        $0:opGreaterEqual $2
+    }
+    Plof.Cmp = Plof.Cmp.Next => $0
+}
+
+plof {
+    Object := [
+        // Use object equality by default
+        opEquals = (this, x) {
+            fythe {
+                (If
+                    (Equal {plof{this}} {plof{x}})
+                    {plof{True}} {plof{False}}
+                )
+            }
+        }
+
+        // No need for primitive checks on most objects
+        opIdentical = (this, x) {
+            True
+        }
+
+        // All the comparisons use opCmp by default
+        opLess = (this, x) {
+            this:opCmp(x) < 0
+        }
+        opLessEqual = (x) {
+            this:opCmp(x) <= 0
+        }
+        opGreater = (x) {
+            this:opCmp(x) > 0
+        }
+        opGreaterEqual = (x) {
+            this:opCmp(x) >= 0
+        }
+    ]
+    
+    var opEqualsOf = (x, y) { x:opEquals y && y:opEquals x}
+    var opIdenticalOf = (x, y) {
+        fml {
+            if (plof{x} === plof{y}) {
+                plof{True};
+            } else {
+                plof{False};
+            }
+        } && x:opIdentical y
+    }
+}
