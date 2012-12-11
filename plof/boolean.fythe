@@ -20,19 +20,19 @@ grammar {
     Plof.Assign => Plof.Or
 
     Plof.Or = Plof.Or "\|\|" Plof.Or.Next => plof {
-        $0.opOr($2)
+        $0:opOr $2
     }
     Plof.Or = Plof.Or.Next => $0
     Plof.Or => Plof.And
 
     Plof.And = Plof.And "&&" Plof.And.Next => plof {
-        $0.opAnd($2)
+        $0:opAnd $2
     }
     Plof.And = Plof.And.Next => $0
     Plof.And => Plof.Unop
 
     Plof.Unop = "\!" Plof.Unop => plof {
-        $1.opNot()
+        $1:opNot
     }
     Plof.Unop = Plof.Unop.Next => $0
 }
@@ -40,26 +40,26 @@ grammar {
 plof {
     // Object is true for logic unless it's False
     Object := [
-        opOr = (x) { True }
-        opAnd = (x) { x }
-        opNot = { False }
+        opOr = (this, x) { True }
+        opAnd = (this, x) { x }
+        opNot = (this) { False }
     ]
     
     // True and False are both Bools
     var Bool = Object : [
-        ifTrue = (x) { this }
-        ifFalse = (x) { this }
+        ifTrue = (this, x) { this }
+        ifFalse = (this, x) { this }
     ]
     
     var True = Bool : [
-        ifTrue = (x) { x; this }
+        ifTrue = (this, x) { x; this }
     ]
 
     var False = Bool : [
-        ifFalse = (x) { x; this }
+        ifFalse = (this, x) { x; this }
     
-        opOr = (x) { x }
-        opAnd = (x) { False }
-        opNot = { True }
+        opOr = (this, x) { x }
+        opAnd = (this, x) { False }
+        opNot = (this) { True }
     ]
 }
