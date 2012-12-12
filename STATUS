@@ -8,7 +8,7 @@ include_g.plof          -
 exceptions.plof         -
 boolean.plof            +
 comparisons.plof        +
-conditionals.plof       -
+conditionals.plof       Partial, needs exceptions
 dynamicTypes.plof       -
 number.plof             -
 string.plof             -

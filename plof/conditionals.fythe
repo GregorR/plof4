@@ -1,0 +1,119 @@
+/*
+ * Conditionals.
+ *
+ * Copyright (c) 2008, 2012 Gregor Richards
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+plof {
+    var if = (cond) {
+        var ret
+        ret = 100
+        (cond&&True)→
+            ifTrue(ret = (then) { then; selff })→
+            ifFalse(ret = (then) { id })
+        ret
+    }
+
+    var else = (then) {
+        then
+    }
+
+    /*
+     * Original implementation, to be fixed when exceptions exist
+
+    // exception thrown when there's an (unlabeled) break
+    var BreakException = Exception : [
+        str = Null // to be filled in
+
+        this () {
+            setMessage(str)
+        }
+    ]
+
+    // exception thrown when there's an (unabeled) continue
+    var ContinueException = Exception : [
+        str = Null // to be filled in
+
+        this() {
+            setMessage(str)
+        }
+    ]
+
+    var while = (cond, act) {
+        var ex
+        try (
+            psl {
+                null
+                { global } // while true
+                {
+                    // check the condition
+                    this "cc" plof{forceEval(cond)} pul_eval memberset
+
+                    plof {
+                        (cc&&True).ifFalse(return(True);)
+                    } pul_eval
+
+                    // perform the action
+                    plof{
+                        try (
+                            forceEval(act)
+                        ) catch ContinueException (ref ex) (
+                            // nothing to do except catch it
+                        ) throw
+                    } pul_eval
+                } while
+            }
+
+        ) catch BreakException (ref ex) (
+            // nothing to do except catch it
+        ) throw
+    }
+
+    var for = (init, cond, step, act) {
+        var ex
+        init
+        while (forceEval(cond)) (
+            try (
+                forceEval(act)
+            ) catch ContinueException (ref ex) (
+                // catch continues early so that the step gets run
+            ) throw
+            forceEval(step)
+        )
+    }
+
+    var break = {
+        throw (new BreakException())
+    }
+
+    var continue = {
+        throw (new ContinueException())
+    }
+    */
+
+    var while = (cond, act) {
+        fythe {
+            (While {plof{forceEval cond}} {plof{forceEval act}})
+        }
+    }
+
+    var for = (init, cond, incr, act) {
+        init
+        while (forceEval cond) (
+            forceEval act
+            forceEval incr
+        )
+    }
+}

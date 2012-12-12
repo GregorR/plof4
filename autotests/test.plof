@@ -71,3 +71,26 @@ var y = Object:[]
 // FIXME: identical comparisons
 
 print 99 // 99
+
+
+// conditionals and loops
+if True ( // 42
+    print 42
+) else (
+    print 0
+)
+if False ( // 24
+    print 0
+) else (
+    print 24
+)
+var x = 10
+while (fythe { (IGte {plof{x}} 0) }) ( // [10, 0], FIXME
+    print x
+    x = fythe { (ISub {plof{x}} 1) } // FIXME
+)
+for (x = 0) (fythe{(ILt {plof{x}} 10)}) (x = fythe{(IAdd {plof{x}} 1)}) ( // [0,10), FIXME
+    print x
+)
+
+print 99 // 99
