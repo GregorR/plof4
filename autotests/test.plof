@@ -5,10 +5,10 @@ var x = Object:[x=42]
 var y = x:[]
 var z = y:[]
 
-print z.x // 42
+print(z.x) // 42
 x.x = 24
-print y.x // 24
-print z.x // 42
+print(y.x) // 24
+print(z.x) // 42
 
 print 99 // 99
 
@@ -34,6 +34,18 @@ x (print 0) // should print nothing
 
 var x = (x) { x; x; }
 x (print 1) // should print only one 1
+
+print 99 // 99
+
+
+// forced reëvaluation
+var x = (x) {
+    forceEval x
+    forceEval x
+    forceEval x
+}
+
+x (print 2) // should print 2 three times
 
 print 99 // 99
 

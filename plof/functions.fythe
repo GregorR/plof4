@@ -17,10 +17,12 @@
  */
 
 grammar {
-    Plof.Assign => Plof.Apply
+    /* forced (re)evaluation of parameters */
+    Plof.Keyword = "forceEval" => (Null)
+    Plof.Group = "forceEval" Plof.Identifier => (Call (Member (Plof.Param $1) 1) (Null))
 
-    Plof.Apply = Plof.Apply.Next => $0
-    Plof.Apply = Plof.Apply Plof.Apply.Next => (Call $0 (Plof.Function $1))
+    /* other function application */
+    Plof.Group = Plof.Group Plof.Group.Next => (Call $0 (Plof.Function $1))
 
     Plof.Primary = "\{"n Plof.Statements "\}" => (Plof.Function $1)
 
@@ -35,7 +37,7 @@ grammar {
     Plof.Params = Plof.Identifier => (Plof.Param $0)
     Plof.Params = Plof.Identifier ","n Plof.Params => (Plof.Params $0 $2)
 
-    Plof.Member = Plof.Member "→"n Plof.Identifier =>
+    Plof.Group = Plof.Group "→"n Plof.Identifier =>
         (Call
             (Plof.Member (TempSet 1 $0) $2)
             (Associate
@@ -101,4 +103,10 @@ fml {
     }
 
     fythe{(Global)}[fythe{(Plof.Globals.NewFunction)}] = bplofNewFunction;
+}
+
+plof {
+    // two very major functions
+    var selff = { selff }
+    var id = (x) { x }
 }

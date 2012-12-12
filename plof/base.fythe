@@ -42,16 +42,16 @@ grammar {
 
     Plof.Assign = Plof.Assign.Next => $0
     Plof.Assign = Plof.Assign.Next "="n Plof.Assign => (Plof.Assign $0 $2)
-    Plof.Assign => Plof.Member
+    Plof.Assign => Plof.Group
 
-    Plof.Member = Plof.Member.Next => $0
-    Plof.Member = Plof.Member "\."n Plof.Identifier => (Plof.Member $0 $2)
-    Plof.Member => Plof.Primary
+    Plof.Group = Plof.Group.Next => $0
+    Plof.Group = Plof.Group "\."n Plof.Identifier => (Plof.Member $0 $2)
+    Plof.Group => Plof.Primary
    
     Plof.Primary = Plof.Primary.Next => $0
     Plof.Primary = "var"n Plof.Identifier => (Plof.VarDecl $1)
     Plof.Primary = Plof.Identifier => (Plof.Var $0)
-    Plof.Primary = "\("n Plof.Semicolon "\)" => $1
+    Plof.Primary = "\("n Plof.Semicolon WhiteN "\)" => $1
     Plof.Primary = LanguageExpression => $0
     Plof.Primary = /\$[0-9][0-9]*/ White => $0 // for putting Plof into grammar
 
@@ -117,7 +117,7 @@ fml {
     }
 
     // get a reference to the value of this variable
-    fun plofGetVar(ctx, nm, depth) {
+    fun plofGetVar(ctx, nm, param, depth) {
         if (ctx === plofGlobalCtx) {
             // things are more screwy at the global context
             ret = obj("MGet", obj("Global"), obj("Plof.Globals.GlobalScope"), nm);
@@ -135,17 +135,23 @@ fml {
 
             // if it's a parameter, need to call
             if (ctx.params->(nm)) {
-                ret = obj("Seq",
-                    obj("TempSet", 1, ret),
-                    obj("Call", obj("Member", obj("Temp", 1), 0), obj("Temp", 1))
-                );
+                if (!param) {
+                    ret = obj("Seq",
+                        obj("TempSet", 1, ret),
+                        obj("Call", obj("Member", obj("Temp", 1), 0), obj("Temp", 1))
+                    );
+                }
+            } else if (param) {
+                // expected a param, didn't find one!
+                print("Parameter expected, variable found!");
+                print(nm);
             }
 
             ret;
 
         } else {
             // try the parent context
-            plofGetVar(ctx.parent, nm, depth+1);
+            plofGetVar(ctx.parent, nm, param, depth+1);
 
         }
     }
@@ -166,7 +172,7 @@ fml {
             }
         }
 
-        plofGetVar(ctx, nm, 0);
+        plofGetVar(ctx, nm, param, 0);
     }
 
     // resolve all variable references in this AST node
@@ -198,7 +204,11 @@ fml {
 
         } else if (node[0] eq "Plof.Var") {
             // a variable reference
-            node = plofGetVar(ctx, node[1], 0);
+            node = plofGetVar(ctx, node[1], 0, 0);
+
+        } else if (node[0] eq "Plof.Param") {
+            // a parameter object reference (used for forceEval)
+            node = plofGetVar(ctx, node[1], 1, 0);
 
         } else if (node[0] eq "Plof.VarDecl") {
             // a variable declaration
@@ -206,8 +216,7 @@ fml {
 
         } else if (node[0] eq "Plof.ParamDecl") {
             // a parameter declaration
-            plofSetVar(ctx, node[1], 1);
-            node = obj("Member", obj("Temp", 0), ctx.vars->(node[1]) + 1);
+            node = plofSetVar(ctx, node[1], 1);
 
         } else {
             // all other cases
