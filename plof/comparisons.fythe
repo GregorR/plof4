@@ -1,7 +1,7 @@
 /*
  * Comparisons
  *
- * Copyright (c) 2008 Gregor Richards
+ * Copyright (c) 2008, 2012 Gregor Richards
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -35,16 +35,16 @@ grammar {
     Plof.Equals => Plof.Cmp
 
     Plof.Cmp = Plof.Cmp "<"n Plof.Cmp.Next => plof {
-        $0:opLess $2
+        $0→opLess $2
     }
     Plof.Cmp = Plof.Cmp "<="n Plof.Cmp.Next => plof {
-        $0:opLessEqual $2
+        $0→opLessEqual $2
     }
     Plof.Cmp = Plof.Cmp ">"n Plof.Cmp.Next => plof {
-        $0:opGreater $2
+        $0→opGreater $2
     }
     Plof.Cmp = Plof.Cmp ">="n Plof.Cmp.Next => plof {
-        $0:opGreaterEqual $2
+        $0→opGreaterEqual $2
     }
     Plof.Cmp = Plof.Cmp.Next => $0
 }
@@ -68,20 +68,20 @@ plof {
 
         // All the comparisons use opCmp by default
         opLess = (this, x) {
-            this:opCmp(x) < 0
+            this→opCmp(x) < 0
         }
         opLessEqual = (x) {
-            this:opCmp(x) <= 0
+            this→opCmp(x) <= 0
         }
         opGreater = (x) {
-            this:opCmp(x) > 0
+            this→opCmp(x) > 0
         }
         opGreaterEqual = (x) {
-            this:opCmp(x) >= 0
+            this→opCmp(x) >= 0
         }
     ]
     
-    var opEqualsOf = (x, y) { x:opEquals y && y:opEquals x}
+    var opEqualsOf = (x, y) { x→opEquals y && y→opEquals x}
     var opIdenticalOf = (x, y) {
         fml {
             if (plof{x} === plof{y}) {
@@ -89,6 +89,6 @@ plof {
             } else {
                 plof{False};
             }
-        } && x:opIdentical y
+        } && x→opIdentical y
     }
 }

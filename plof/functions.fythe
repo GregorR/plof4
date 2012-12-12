@@ -35,7 +35,7 @@ grammar {
     Plof.Params = Plof.Identifier => (Plof.Param $0)
     Plof.Params = Plof.Identifier ","n Plof.Params => (Plof.Params $0 $2)
 
-    Plof.Member = Plof.Member ":"n Plof.Identifier =>
+    Plof.Member = Plof.Member "→"n Plof.Identifier =>
         (Call
             (Plof.Member (TempSet 1 $0) $2)
             (Associate

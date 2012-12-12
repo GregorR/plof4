@@ -39,14 +39,14 @@ print 99 // 99
 
 
 // booleans
-True:ifTrue (print 1) // 1
-False:ifTrue (print 2) // nothing
-(True && False):ifTrue (print 3) // nothing
-(True || False):ifTrue (print 4) // 4
-(True || (print 50 || False)):ifTrue (print 5) // 5, NO 50
-(False || (print 6 || True)):ifTrue (print 7) // 6, 7
-(False || (print 8 || True)):ifFalse (print 9) // 8
-(False && (print 9 || True)):ifFalse (print 10) // 10
+True→ifTrue (print 1) // 1
+False→ifTrue (print 2) // nothing
+(True && False)→ifTrue (print 3) // nothing
+(True || False)→ifTrue (print 4) // 4
+(True || (print 50 || False))→ifTrue (print 5) // 5, NO 50
+(False || (print 6 || True))→ifTrue (print 7) // 6, 7
+(False || (print 8 || True))→ifFalse (print 9) // 8
+(False && (print 9 || True))→ifFalse (print 10) // 10
 
 print 99 // 99
 
@@ -54,8 +54,8 @@ print 99 // 99
 // comparisons (first bit)
 var x = Object:[]
 var y = Object:[]
-(x == y):ifTrue (print 1) // nothing
-(x == x):ifTrue (print 2) // 2
+(x == y)→ifTrue (print 1) // nothing
+(x == x)→ifTrue (print 2) // 2
 // FIXME: identical comparisons
 
 print 99 // 99
